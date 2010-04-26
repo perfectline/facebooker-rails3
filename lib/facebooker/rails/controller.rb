@@ -1,10 +1,13 @@
 require 'facebooker'
 require 'facebooker/rails/profile_publisher_extensions'
+
 module Facebooker
   module Rails
     module Controller
+      
       include Facebooker::Rails::BackwardsCompatibleParamChecks
       include Facebooker::Rails::ProfilePublisherExtensions
+      
       def self.included(controller)
         controller.extend(ClassMethods)
         controller.before_filter :set_facebook_request_format
@@ -27,7 +30,7 @@ module Facebooker
       end
       
       def create_facebook_session
-        secure_with_facebook_params! || secure_with_cookies! || secure_with_token!
+        secure_with_facebook_params! or secure_with_cookies! or secure_with_token!
       end
       
       #this is used to proxy a connection through a rails app so the facebook secret key is not needed
@@ -38,7 +41,7 @@ module Facebooker
       
       def set_facebook_session
         # first, see if we already have a session
-        session_set = session_already_secured?
+        session_set = session_already_secured? and session_for_current_user?
         # if not, see if we can load it from the environment
         unless session_set
           session_set = create_facebook_session
@@ -91,6 +94,10 @@ module Facebooker
         (@facebook_session = session[:facebook_session]) && session[:facebook_session].secured? if valid_session_key_in_session?
       end
       
+      def session_for_current_user?
+        @facebook_session = session[:facebook_session] and @facebook_session.user.uid == new_fb_cookies['uid']  
+      end
+      
       def user_has_deauthorized_application?
         # if we're inside the facebook session and there is no session key,
         # that means the user revoked our access
@@ -122,26 +129,36 @@ module Facebooker
       end
 
       def fb_cookie_prefix
-        Facebooker.api_key+"_"
+        Facebooker.api_key.to_s + "_"
       end
 
       def fb_cookie_names
         fb_cookie_names = cookies.keys.select{|k| k && k.starts_with?(fb_cookie_prefix)}
       end
+      
+      def fb_cookies
+        @fb_cookies ||= parse_fb_cookies  
+      end
+      
+      def parse_fb_cookies
+        parsed = {}
+        return parsed unless Facebooker.api_key and fb_cookie_new = cookies["fbs_#{Facebooker.api_key}"] 
+        fb_cookie_new = fb_cookie_new[1, fb_cookie_new.length-2]
+        fb_cookie_new.split('&').each do |str|
+          key, val = str.split('=')
+          parsed[key] = val
+        end
+        parsed
+      end
 
       def secure_with_cookies!
-          parsed = {}
-
-          fb_cookie_names.each { |key| parsed[key[fb_cookie_prefix.size,key.size]] = cookies[key] }
-
-          #returning gracefully if the cookies aren't set or have expired
-          return unless parsed['session_key'] && parsed['user'] && parsed['expires'] && parsed['ss'] 
+          parsed = fb_cookies
+          return unless parsed['session_key'] && parsed['uid'] && parsed['expires'] && parsed['secret'] && parsed['sig']
           return unless (Time.at(parsed['expires'].to_s.to_f) > Time.now) || (parsed['expires'] == "0")      
-          #if we have the unexpired cookies, we'll throw an exception if the sig doesn't verify
-          verify_signature(parsed,cookies[Facebooker.api_key], true)
+          verify_signature(parsed, parsed.delete('sig'), true)
 
           @facebook_session = new_facebook_session
-          @facebook_session.secure_with!(parsed['session_key'],parsed['user'],parsed['expires'],parsed['ss'])
+          @facebook_session.secure_with!(parsed['session_key'],parsed['uid'],parsed['expires'],parsed['secret'])
           @facebook_session
       end
     
@@ -225,11 +242,11 @@ module Facebooker
       
       def verify_signature(facebook_sig_params,expected_signature,force=false)
         # Don't verify the signature if rack has already done so.
-        unless ::Rails.version >= "2.3" and ActionController::Dispatcher.middleware.include? Rack::Facebook and !force
-          raw_string = facebook_sig_params.map{ |*args| args.join('=') }.sort.join
-          actual_sig = Digest::MD5.hexdigest([raw_string, Facebooker::Session.secret_key].join)
-          raise Facebooker::Session::IncorrectSignature if actual_sig != expected_signature
-        end
+        #if !::Rails::Application.middleware.include?(Rack::Facebook) or force
+        #  raw_string = facebook_sig_params.map{ |*args| args.join('=') }.sort.join
+        #  actual_sig = Digest::MD5.hexdigest([raw_string, Facebooker::Session.secret_key].join)
+        #  raise Facebooker::Session::IncorrectSignature if actual_sig != expected_signature
+        #end
         raise Facebooker::Session::SignatureTooOld if facebook_sig_params['time'] && Time.at(facebook_sig_params['time'].to_f) < earliest_valid_session
         true
       end

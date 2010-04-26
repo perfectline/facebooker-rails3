@@ -11,7 +11,7 @@ module Facebooker
             "<script src=\"https://ssl.connect.facebook.com/js/api_lib/v0.4/FeatureLoader.js.php#{lang}\" type=\"text/javascript\"></script>"
           else
             "<script src=\"http://static.ak.connect.facebook.com/js/api_lib/v0.4/FeatureLoader.js.php#{lang}\" type=\"text/javascript\"></script>"
-          end
+          end.html_safe
         end
 
         #
@@ -34,9 +34,9 @@ module Facebooker
           end
 
           if request.ssl?
-            init_string = "FB.init('#{Facebooker.api_key}','/xd_receiver_ssl.html', #{options[:app_settings]});"
+            init_string = "FB.init('#{Facebooker.api_key}','#{root_url(:locale => nil)}/xd_receiver_ssl.html', #{options[:app_settings]});"
           else
-            init_string = "FB.init('#{Facebooker.api_key}','/xd_receiver.html', #{options[:app_settings]});"
+            init_string = "FB.init('#{Facebooker.api_key}', '#{root_url(:locale => nil)}/xd_receiver.html', #{options[:app_settings]});"
           end
           unless required_features.blank?
              init_string = <<-FBML
@@ -46,7 +46,7 @@ module Facebooker
                when :dojo then "dojo.addOnLoad("
                else "Element.observe(window,'load',"
                end} function() {
-                FB_RequireFeatures(#{required_features.to_json}, function() {
+                if (typeof FB_RequireFeatures != 'undefined') FB_RequireFeatures(#{required_features.to_json}, function() {
                   #{init_string}
                   #{additions}
                 });

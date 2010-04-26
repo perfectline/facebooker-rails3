@@ -1,28 +1,10 @@
-unless defined?(ActiveSupport) and defined?(ActiveSupport::JSON)
-  begin
-    require 'json'
-  rescue LoadError
-    gem "json_pure"
-    require "json"
+module Facebooker
+  def self.json_decode(str)
+    ActiveSupport::JSON.decode(str)
   end
-  module Facebooker
-    def self.json_decode(str)
-      JSON.parse(str)
-    end
 
-    def self.json_encode(o)
-      JSON.dump(o)
-    end
-  end
-else
-  module Facebooker
-    def self.json_decode(str)
-      ActiveSupport::JSON.decode(str)
-    end
-
-    def self.json_encode(o)
-      ActiveSupport::JSON.encode(o)
-    end
+  def self.json_encode(o)
+    ActiveSupport::JSON.encode(o)
   end
 end
 
@@ -42,18 +24,17 @@ module Facebooker
 
     def load_configuration(facebooker_yaml_file)
       return false unless File.exist?(facebooker_yaml_file)
-      @raw_facebooker_configuration = YAML.load(ERB.new(File.read(facebooker_yaml_file)).result)
-      if defined? RAILS_ENV
-        @raw_facebooker_configuration = @raw_facebooker_configuration[RAILS_ENV]
-      end
+      @raw_facebooker_configuration = YAML.load(ERB.new(File.read(facebooker_yaml_file)).result)[::Rails.env]
       Thread.current[:fb_api_config] = @raw_facebooker_configuration unless Thread.current[:fb_api_config]
       apply_configuration(@raw_facebooker_configuration)
     end
 
     # Sets the Facebook environment based on a hash of options. 
     # By default the hash passed in is loaded from facebooker.yml, but it can also be passed in
-    # manually every request to run multiple Facebook apps off one Rails app. 
+    # manually every request to run multiple Facebook apps off one Rails app.
+    #
     def apply_configuration(config)
+      ENV['FACEBOOK_APP_ID']              = config['app_id'].to_s
       ENV['FACEBOOK_API_KEY']             = config['api_key']
       ENV['FACEBOOK_SECRET_KEY']          = config['secret_key']
       ENV['FACEBOOKER_RELATIVE_URL_ROOT'] = config['canvas_page_name']
@@ -62,7 +43,7 @@ module Facebooker
         Facebooker.set_asset_host_to_callback_url = config['set_asset_host_to_callback_url'] 
       end
       if Object.const_defined?("ActionController") and Facebooker.set_asset_host_to_callback_url
-        ActionController::Base.asset_host = config['callback_url'] 
+        #ActionController::Base.asset_host = config['callback_url'] 
       end
       Facebooker.timeout = config['timeout']
 
@@ -169,13 +150,11 @@ module Facebooker
       @timeout
     end
 
-    [:api_key,:secret_key, :www_server_base_url,:login_url_base,:install_url_base,:permission_url_base,:connect_permission_url_base,:api_rest_path,:api_server_base,:api_server_base_url,:canvas_server_base, :video_server_base].each do |delegated_method|
-      define_method(delegated_method){ return current_adapter.send(delegated_method)}
+    [:app_id, :api_key,:secret_key, :www_server_base_url,:login_url_base,:install_url_base,:permission_url_base,:connect_permission_url_base,:api_rest_path,:api_server_base,:api_server_base_url,:canvas_server_base, :video_server_base].each do |delegated_method|
+      define_method(delegated_method) { return current_adapter.send(delegated_method) }
     end
 
-
     attr_reader :path_prefix
-
 
     # Set the asset path to the canvas path for just this one request
     # by definition, we will make this a canvas request
@@ -259,3 +238,5 @@ require 'facebooker/models/message_thread'
 require 'facebooker/adapters/adapter_base'
 require 'facebooker/adapters/facebook_adapter'
 require 'facebooker/adapters/bebo_adapter'
+
+require 'facebooker/railtie'
