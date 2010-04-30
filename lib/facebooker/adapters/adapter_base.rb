@@ -30,7 +30,7 @@ module Facebooker
     end
 
     def  self.facebooker_config
-      Facebooker.facebooker_config[RAILS_ENV]
+      Facebooker.facebooker_config[::Rails.env]
     end
 
 
