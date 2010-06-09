@@ -5,13 +5,9 @@ module Facebooker
         include Facebooker::Rails::Helpers::StreamPublish
         def fb_connect_javascript_tag(options = {})
           # accept both Rails and Facebook locale formatting, i.e. "en-US" and "en_US".
-          lang = "/#{options[:lang].to_s.gsub('-', '_')}" if options[:lang]
+          lang = "#{options[:lang].to_s.gsub('-', '_')}" if options[:lang]
           # dont use the javascript_include_tag helper since it adds a .js at the end
-          if request.ssl?
-            "<script src=\"https://ssl.connect.facebook.com/js/api_lib/v0.4/FeatureLoader.js.php#{lang}\" type=\"text/javascript\"></script>"
-          else
-            "<script src=\"http://static.ak.connect.facebook.com/js/api_lib/v0.4/FeatureLoader.js.php#{lang}\" type=\"text/javascript\"></script>"
-          end.html_safe
+          "<script src=\"http#{'s' if request.ssl?}://connect.facebook.net/#{lang}/all.js\"></script>".html_safe
         end
 
         #
@@ -132,7 +128,8 @@ module Facebooker
 
         def fb_logout_link(text,url,*args)
           js = update_page do |page|
-            page.call "FB.Connect.logoutAndRedirect",url
+            # page.call "FB.Connect.logoutAndRedirect",url
+            page << "FB.logout(function(response){window.location.href = encodeURI('#{url}');})"
           end
           link_to_function text, js, *args
         end
