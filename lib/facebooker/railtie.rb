@@ -28,7 +28,7 @@ module Facebooker
     
     initializer 'facebooker.set_logger' do |app|
       # enable logger before including everything else, in case we ever want to log initialization
-      Facebooker.logger = RAILS_DEFAULT_LOGGER if Object.const_defined? :RAILS_DEFAULT_LOGGER
+      Facebooker.logger = Rails.logger
     end
   end
 end

@@ -6,7 +6,7 @@ require 'facebooker'
 FACEBOOKER = Facebooker.load_configuration(facebook_config)
 
 # enable logger before including everything else, in case we ever want to log initialization
-Facebooker.logger = RAILS_DEFAULT_LOGGER if Object.const_defined? :RAILS_DEFAULT_LOGGER
+Facebooker.logger = Rails.logger
 
 require 'net/http_multipart_post'
 if defined? Rails

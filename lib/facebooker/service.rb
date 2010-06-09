@@ -64,7 +64,13 @@ module Facebooker
     def post(params)
       attempt = 0
       if active_service.parse_results?
-        Parser.parse(params[:method], post_form(url,params) )
+        results = post_form(url,params) 
+        unless Facebooker::Logging::skip_api_logging
+          Facebooker::Logging.log_info 'Request url', url
+          Facebooker::Logging.log_info 'Request params', params.to_yaml
+          Facebooker::Logging.log_info 'Response', results.to_yaml
+        end
+        Parser.parse(params[:method], results)
       else
         post_form(url,params)
       end

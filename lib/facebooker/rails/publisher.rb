@@ -433,7 +433,7 @@ module Facebooker
       # nodoc
       # needed for actionview
       def logger
-        RAILS_DEFAULT_LOGGER
+        Rails.logger
       end
 
       # nodoc
