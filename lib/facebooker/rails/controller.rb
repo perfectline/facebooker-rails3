@@ -143,7 +143,7 @@ module Facebooker
       def parse_fb_cookies
         parsed = {}
         return parsed unless Facebooker.api_key and fb_cookie_new = cookies["fbs_#{Facebooker.api_key}"] 
-        fb_cookie_new = fb_cookie_new[1, fb_cookie_new.length-1]
+        fb_cookie_new = fb_cookie_new[1, fb_cookie_new.length-2] # remove enclosing quotes
         fb_cookie_new.split('&').each do |str|
           key, val = str.split('=')
           parsed[key] = val
