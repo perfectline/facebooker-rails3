@@ -618,7 +618,7 @@ module Facebooker
     def self.register(users)
       user_map={}
       users=users.map do |h|
-        returning h.dup do |d|
+        h.dup.tap do |d|
           if email=d.delete(:email)
             hash = hash_email(email)
             user_map[hash]=h

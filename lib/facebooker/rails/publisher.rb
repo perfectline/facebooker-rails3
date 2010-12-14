@@ -446,7 +446,7 @@ module Facebooker
 
 
       def initialize_template_class(assigns)
-        template_root = "#{RAILS_ROOT}/app/views"
+        template_root = "#{Rails.root}/app/views"
         controller_root = File.join(template_root,self.class.controller_path)
         #only do this on Rails 2.1
         if ActionController::Base.respond_to?(:append_view_path)
@@ -459,7 +459,7 @@ module Facebooker
         else
           view_paths = [template_root, controller_root]
         end
-        returning ActionView::Base.new(view_paths, assigns, self) do |template|
+        ActionView::Base.new(view_paths, assigns, self).tap do |template|
           template.controller=self
           template.extend(self.class.master_helper_module)
           def template.request_comes_from_facebook?

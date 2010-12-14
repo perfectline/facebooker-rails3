@@ -329,7 +329,7 @@ module Facebooker
       
       def ensure_application_is_installed_by_facebook_user
         @installation_required = true
-        returning ensure_authenticated_to_facebook && application_is_installed? do |authenticated_and_installed|
+        (ensure_authenticated_to_facebook && application_is_installed?).tap do |authenticated_and_installed|
            application_is_not_installed_by_facebook_user unless authenticated_and_installed
         end
       end

@@ -7,8 +7,8 @@ module Facebooker
     class UnboundSessionException < Exception; end
     def self.included(includer)
       includer.extend ClassMethods
-      includer.__send__(:attr_writer, :session)
-      includer.__send__(:attr_reader, :anonymous_fields)
+      includer.send(:attr_writer, :session)
+      includer.send(:attr_reader, :anonymous_fields)
     end
     module ClassMethods
       ##
@@ -126,7 +126,7 @@ module Facebooker
           set_attr_method = "#{key}="
           unless value.nil?
             if respond_to?(set_attr_method)
-              self.__send__(set_attr_method, value) 
+              self.send(set_attr_method, value)
             else
               Facebooker::Logging.log_info("**Warning**, Attempt to set non-attribute: #{key}",hash)
             end
