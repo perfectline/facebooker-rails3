@@ -95,7 +95,7 @@ module Facebooker
       end
       
       def session_for_current_user?
-        @facebook_session = session[:facebook_session] and @facebook_session.user.uid == new_fb_cookies['uid']  
+        @facebook_session = session[:facebook_session] and @facebook_session.user.uid == fb_cookies['uid']  
       end
       
       def user_has_deauthorized_application?
